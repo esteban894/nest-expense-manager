@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: em_mysql_db
+    environment:
+      MYSQL_DATABASE: db_crud
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+      MYSQL_USER: user_crud
+    volumes:
+      - ./mysql:/var/lib/mysql
+    ports:
+      - "3307:3306"
