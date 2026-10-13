@@ -128,4 +128,40 @@ describe('TransactionsService', () => {
       expect(repo.restore).toHaveBeenCalledWith({ id: 7 });
     });
   });
+
+  describe('ownership: findOne/update', () => {
+    it('findOne de transacción ajena → 404', async () => {
+      repo.findOne.mockResolvedValue(null);
+      await expect(service.findOne(7, user)).rejects.toThrow(NotFoundException);
+      expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 7, userEmail: user.email } });
+    });
+    it('update de transacción ajena → 404 y no escribe', async () => {
+      repo.findOne.mockResolvedValue(null);
+      await expect(service.update(7, { description: 'x' }, user)).rejects.toThrow(NotFoundException);
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+    it('admin busca solo por id (sin filtro de email)', async () => {
+      repo.findOne.mockResolvedValue({ id: 7 });
+      await service.findOne(7, { ...user, role: 'admin' });
+      expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 7 } });
+    });
+  });
+
+  describe('update: recálculo de signo', () => {
+    const existingExpense = { id: 7, amount: -1050, typeAmount: TypeAmount.EXPENSE_NECESSARY, description: 'Luz' };
+    beforeEach(() => repo.findOne.mockResolvedValue({ ...existingExpense }));
+
+    it('solo typeAmount: invierte el signo del monto existente', async () => {
+      await service.update(7, { typeAmount: TypeAmount.INCOME }, user);
+      expect(repo.update).toHaveBeenCalledWith(7, { typeAmount: TypeAmount.INCOME, amount: 1050 });
+    });
+    it('solo amount: conserva el tipo existente', async () => {
+      await service.update(7, { amount: 2000 }, user);
+      expect(repo.update).toHaveBeenCalledWith(7, { amount: -2000 });
+    });
+    it('solo description: no toca el monto', async () => {
+      await service.update(7, { description: 'Luz y gas' }, user);
+      expect(repo.update).toHaveBeenCalledWith(7, { description: 'Luz y gas' });
+    });
+  });
 });
