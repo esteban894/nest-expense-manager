@@ -52,6 +52,24 @@ describe('TransactionsService', () => {
     });
   });
 
+  describe('summary', () => {
+    it('summary agrega por tipo y castea strings de MySQL', async () => {
+      qb.getRawMany.mockResolvedValue([
+        { type: 'income', total: '103000000', count: '2' },
+        { type: 'expense_necessary', total: '-47930000', count: '4' },
+        { type: 'expense_unnecessary', total: '-12530000', count: '3' },
+      ]);
+      await expect(service.summary(user)).resolves.toEqual({
+        balance: 42540000, income: 103000000, expense: 60460000,
+        necessary: 47930000, unnecessary: 12530000,
+        counts: { income: 2, expense_necessary: 4, expense_unnecessary: 3 },
+      });
+    });
+    it('summary vacío devuelve ceros', async () => {
+      await expect(service.summary(user)).resolves.toMatchObject({ balance: 0, counts: { income: 0 } });
+    });
+  });
+
   describe('findAll', () => {
     it('filtra por dueño y ordena por fecha', async () => {
       await service.findAll(user, {});

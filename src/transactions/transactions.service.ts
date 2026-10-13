@@ -54,6 +54,30 @@ export class TransactionsService {
     return qb.orderBy('t.createdAt', 'DESC').addOrderBy('t.id', 'DESC').getMany();
   }
 
+  async summary(user: userActiveInterface) {
+    const rows = await this.scoped(user)
+      .select('t.typeAmount', 'type')
+      .addSelect('SUM(t.amount)', 'total')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('t.typeAmount')
+      .getRawMany<{ type: TypeAmount; total: string; count: string }>();
+    const by = (t: TypeAmount) => rows.find((r) => r.type === t);
+    const total = (t: TypeAmount) => Math.abs(Number(by(t)?.total ?? 0));
+    const count = (t: TypeAmount) => Number(by(t)?.count ?? 0);
+    const income = total(TypeAmount.INCOME);
+    const necessary = total(TypeAmount.EXPENSE_NECESSARY);
+    const unnecessary = total(TypeAmount.EXPENSE_UNNECESSARY);
+    return {
+      balance: income - necessary - unnecessary, income,
+      expense: necessary + unnecessary, necessary, unnecessary,
+      counts: {
+        income: count(TypeAmount.INCOME),
+        expense_necessary: count(TypeAmount.EXPENSE_NECESSARY),
+        expense_unnecessary: count(TypeAmount.EXPENSE_UNNECESSARY),
+      },
+    };
+  }
+
   async findOne(id: number) {
     const transaction = await this.transactionRepository.findOneBy({ id });
     if (!transaction) {

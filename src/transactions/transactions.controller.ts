@@ -41,6 +41,11 @@ export class TransactionsController {
     return this.transactionsService.findAll(user, query);
   }
 
+  @Get('summary')
+  summary(@ActiveUser() user: userActiveInterface) {
+    return this.transactionsService.summary(user);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.transactionsService.findOne(+id);
