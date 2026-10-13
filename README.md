@@ -1,73 +1,46 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Cuentas Claras - API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend NestJS + TypeORM + MySQL para el gestor de gastos. Swagger en `/docs`; todas las rutas bajo `/api/v1`.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
+## Puesta en marcha
 
 ```bash
-$ npm install
+npm install
+docker compose up -d        # MySQL (puerto 3307 en el host) y app
+npm run start:dev           # alternativa local (ajustar DATABASE_HOST/PORT)
+npm test                    # tests unitarios
 ```
 
-## Running the app
+## Montos en centavos
+
+Todos los montos son **enteros en centavos** (`$ 850.000,00` = `85000000`).
+
+- Al crear (`POST`) o editar se envía el monto **positivo**; el signo lo deriva `typeAmount` (`income` suma, `expense_*` resta).
+- Las respuestas devuelven `amount` con signo y los totales del resumen, todo en centavos.
+- Bases existentes con montos en pesos: ejecutar **una sola vez** `scripts/2026-10-amount-to-cents.sql` (multiplica `amount` por 100).
+
+## Endpoints
+
+Auth: `POST /auth/register` (`{name,email,password}`) y `POST /auth/login` (`{email,password}` -> `{token,email}`). Las rutas de transacciones requieren `Authorization: Bearer <token>` y están limitadas al usuario dueño (404 si no es suyo).
+
+| Método | Ruta | Descripción | Query params |
+| --- | --- | --- | --- |
+| POST | `/transactions` | Crea una transacción `{amount, description, typeAmount}` | - |
+| GET | `/transactions` | Lista, más recientes primero | `type` (`income`, `expense_necessary`, `expense_unnecessary`), `search` (texto en descripción), `from` y `to` (instantes ISO 8601, p. ej. `2026-10-13T03:00:00.000Z`; `from` inclusivo, `to` exclusivo; `from < to` o 400). El cliente envía el inicio de su día local para `from` y el inicio del día siguiente al "hasta" para `to` |
+| GET | `/transactions/summary` | `{balance, income, expense, necessary, unnecessary, counts}` en centavos | - |
+| GET | `/transactions/:id` | Detalle | - |
+| PATCH | `/transactions/:id` | Edita | - |
+| DELETE | `/transactions/:id` | Borrado lógico | - |
+| PATCH | `/transactions/:id/restore` | Restaura una transacción borrada | - |
+
+## Cuenta demo
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run seed:demo
 ```
 
-## Test
+Crea (si no existe) `demo@cuentasclaras.app` / `portfolio2026` (Ana Pérez), borra sus transacciones y carga 9 de ejemplo. Es idempotente. Desde el host, con MySQL en docker:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+DATABASE_HOST=127.0.0.1 DATABASE_PORT=3307 npm run seed:demo
 ```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
