@@ -19,6 +19,8 @@ import { AuthModule } from './auth/auth.module';
       username: process.env.DATABASE_USERNAME,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
+      // Fechas en UTC (como CURRENT_TIMESTAMP de MySQL), sin depender del TZ del proceso.
+      timezone: 'Z',
       autoLoadEntities: true,
       synchronize: true,
     }),

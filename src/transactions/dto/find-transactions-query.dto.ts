@@ -1,8 +1,6 @@
-import { IsDateString, IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsEnum, IsISO8601, IsOptional, IsString, Length } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { TypeAmount } from '../models/typeAmount.model';
-
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export class FindTransactionsQueryDto {
   @IsOptional() @IsEnum(TypeAmount)
@@ -13,9 +11,11 @@ export class FindTransactionsQueryDto {
   @IsString() @Length(1, 80)
   search?: string;
 
-  @IsOptional() @Matches(DATE) @IsDateString()
+  /** Instante ISO 8601 (inclusivo), p. ej. inicio del día local del cliente en UTC. */
+  @IsOptional() @IsISO8601({ strict: true })
   from?: string;
 
-  @IsOptional() @Matches(DATE) @IsDateString()
+  /** Instante ISO 8601 (exclusivo), p. ej. inicio del día siguiente al "hasta" elegido. */
+  @IsOptional() @IsISO8601({ strict: true })
   to?: string;
 }

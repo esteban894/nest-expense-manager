@@ -88,13 +88,27 @@ describe('TransactionsService', () => {
       await service.findAll(user, { search: '50%_off' });
       expect(qb.andWhere).toHaveBeenCalledWith("t.description LIKE :search ESCAPE '\\\\'", { search: '%50\\%\\_off%' });
     });
-    it('to es inclusivo hasta fin del día', async () => {
-      await service.findAll(user, { from: '2026-10-01', to: '2026-10-13' });
-      expect(qb.andWhere).toHaveBeenCalledWith('t.createdAt >= :from', { from: '2026-10-01 00:00:00' });
-      expect(qb.andWhere).toHaveBeenCalledWith('t.createdAt < DATE_ADD(:to, INTERVAL 1 DAY)', { to: '2026-10-13' });
+    it('compara instantes ISO: from inclusivo, to exclusivo', async () => {
+      const from = '2026-10-01T03:00:00.000Z';
+      const to = '2026-10-14T03:00:00.000Z';
+      await service.findAll(user, { from, to });
+      expect(qb.andWhere).toHaveBeenCalledWith('t.createdAt >= :from', { from: new Date(from) });
+      expect(qb.andWhere).toHaveBeenCalledWith('t.createdAt < :to', { to: new Date(to) });
     });
     it('rechaza from > to', async () => {
-      await expect(service.findAll(user, { from: '2026-10-13', to: '2026-10-01' })).rejects.toThrow(BadRequestException);
+      await expect(
+        service.findAll(user, { from: '2026-10-14T03:00:00.000Z', to: '2026-10-01T03:00:00.000Z' }),
+      ).rejects.toThrow('La fecha "desde" no puede ser posterior a "hasta"');
+    });
+    it('rechaza from == to (rango vacío, to es exclusivo)', async () => {
+      const t = '2026-10-13T03:00:00.000Z';
+      await expect(service.findAll(user, { from: t, to: t })).rejects.toThrow(BadRequestException);
+    });
+    it('compara por instante, no por texto (offsets distintos)', async () => {
+      // 2026-10-13T01:00:00-03:00 == 04:00Z, posterior a 03:00Z aunque el texto ordene antes
+      await expect(
+        service.findAll(user, { from: '2026-10-13T01:00:00-03:00', to: '2026-10-13T03:00:00.000Z' }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

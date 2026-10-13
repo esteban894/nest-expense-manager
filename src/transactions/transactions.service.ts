@@ -40,7 +40,9 @@ export class TransactionsService {
   }
 
   async findAll(user: userActiveInterface, q: FindTransactionsQueryDto) {
-    if (q.from && q.to && q.from > q.to) {
+    const from = q.from ? new Date(q.from) : undefined;
+    const to = q.to ? new Date(q.to) : undefined;
+    if (from && to && from.getTime() >= to.getTime()) {
       throw new BadRequestException('La fecha "desde" no puede ser posterior a "hasta"');
     }
     const qb = this.scoped(user);
@@ -49,8 +51,8 @@ export class TransactionsService {
       const escaped = q.search.replace(/[\\%_]/g, (c) => `\\${c}`);
       qb.andWhere("t.description LIKE :search ESCAPE '\\\\'", { search: `%${escaped}%` });
     }
-    if (q.from) qb.andWhere('t.createdAt >= :from', { from: `${q.from} 00:00:00` });
-    if (q.to) qb.andWhere('t.createdAt < DATE_ADD(:to, INTERVAL 1 DAY)', { to: q.to });
+    if (from) qb.andWhere('t.createdAt >= :from', { from });
+    if (to) qb.andWhere('t.createdAt < :to', { to });
     return qb.orderBy('t.createdAt', 'DESC').addOrderBy('t.id', 'DESC').getMany();
   }
 

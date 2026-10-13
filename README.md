@@ -26,7 +26,7 @@ Auth: `POST /auth/register` (`{name,email,password}`) y `POST /auth/login` (`{em
 | Método | Ruta | Descripción | Query params |
 | --- | --- | --- | --- |
 | POST | `/transactions` | Crea una transacción `{amount, description, typeAmount}` | - |
-| GET | `/transactions` | Lista, más recientes primero | `type` (`income`, `expense_necessary`, `expense_unnecessary`), `search` (texto en descripción), `from` y `to` (`YYYY-MM-DD`, inclusivos; `from <= to` o 400) |
+| GET | `/transactions` | Lista, más recientes primero | `type` (`income`, `expense_necessary`, `expense_unnecessary`), `search` (texto en descripción), `from` y `to` (instantes ISO 8601, p. ej. `2026-10-13T03:00:00.000Z`; `from` inclusivo, `to` exclusivo; `from < to` o 400). El cliente envía el inicio de su día local para `from` y el inicio del día siguiente al "hasta" para `to` |
 | GET | `/transactions/summary` | `{balance, income, expense, necessary, unnecessary, counts}` en centavos | - |
 | GET | `/transactions/:id` | Detalle | - |
 | PATCH | `/transactions/:id` | Edita | - |
