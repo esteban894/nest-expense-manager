@@ -6,6 +6,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Transaction } from './entities/transaction.entity';
 import { userActiveInterface } from 'src/common/interfaces/user-active.interface';
 import { Role } from 'src/common/enums/role.enum';
+import { TypeAmount } from './models/typeAmount.model';
+
+export const signedAmount = (amount: number, type: TypeAmount) =>
+  type === TypeAmount.INCOME ? Math.abs(amount) : -Math.abs(amount);
 
 @Injectable()
 export class TransactionsService {
@@ -20,6 +24,10 @@ export class TransactionsService {
   ) {
     return await this.transactionRepository.save({
       ...createTransactionDto,
+      amount: signedAmount(
+        createTransactionDto.amount,
+        createTransactionDto.typeAmount,
+      ),
       userEmail: user.email,
     });
   }
@@ -44,10 +52,18 @@ export class TransactionsService {
   }
 
   async update(id: number, updateTransactionDto: UpdateTransactionDto) {
-    await this.findOne(id);
-    return await this.transactionRepository.update(id, {
-      ...updateTransactionDto,
-    });
+    const existing = await this.findOne(id);
+    const patch: Partial<Transaction> = { ...updateTransactionDto };
+    if (
+      updateTransactionDto.amount !== undefined ||
+      updateTransactionDto.typeAmount !== undefined
+    ) {
+      const type = (updateTransactionDto.typeAmount ??
+        existing.typeAmount) as TypeAmount;
+      const amount = updateTransactionDto.amount ?? Math.abs(existing.amount);
+      patch.amount = signedAmount(amount, type);
+    }
+    return await this.transactionRepository.update(id, patch);
   }
 
   async remove(id: number) {
