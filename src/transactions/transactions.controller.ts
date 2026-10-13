@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Auth } from '../auth/decorators/auth.decorator';
@@ -13,6 +14,7 @@ import { ActiveUser } from '../common/decorators/active-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { userActiveInterface } from '../common/interfaces/user-active.interface';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { FindTransactionsQueryDto } from './dto/find-transactions-query.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionsService } from './transactions.service';
 
@@ -32,8 +34,11 @@ export class TransactionsController {
   }
 
   @Get()
-  findAll(@ActiveUser() user: userActiveInterface) {
-    return this.transactionsService.findAll(user);
+  findAll(
+    @ActiveUser() user: userActiveInterface,
+    @Query() query: FindTransactionsQueryDto,
+  ) {
+    return this.transactionsService.findAll(user, query);
   }
 
   @Get(':id')

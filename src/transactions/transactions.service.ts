@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { FindTransactionsQueryDto } from './dto/find-transactions-query.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,15 +33,25 @@ export class TransactionsService {
     });
   }
 
-  async findAll(user: userActiveInterface) {
-    if (user.role === Role.ADMIN) {
-      return await this.transactionRepository.find();
-    }
+  private scoped(user: userActiveInterface) {
+    const qb = this.transactionRepository.createQueryBuilder('t');
+    if (user.role !== Role.ADMIN) qb.where('t.userEmail = :email', { email: user.email });
+    return qb;
+  }
 
-    console.log(user.email);
-    return await this.transactionRepository.find({
-      where: { userEmail: user.email },
-    });
+  async findAll(user: userActiveInterface, q: FindTransactionsQueryDto) {
+    if (q.from && q.to && q.from > q.to) {
+      throw new BadRequestException('La fecha "desde" no puede ser posterior a "hasta"');
+    }
+    const qb = this.scoped(user);
+    if (q.type) qb.andWhere('t.typeAmount = :type', { type: q.type });
+    if (q.search) {
+      const escaped = q.search.replace(/[\\%_]/g, (c) => `\\${c}`);
+      qb.andWhere("t.description LIKE :search ESCAPE '\\\\'", { search: `%${escaped}%` });
+    }
+    if (q.from) qb.andWhere('t.createdAt >= :from', { from: `${q.from} 00:00:00` });
+    if (q.to) qb.andWhere('t.createdAt < DATE_ADD(:to, INTERVAL 1 DAY)', { to: q.to });
+    return qb.orderBy('t.createdAt', 'DESC').addOrderBy('t.id', 'DESC').getMany();
   }
 
   async findOne(id: number) {
