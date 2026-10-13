@@ -78,16 +78,27 @@ export class TransactionsService {
     };
   }
 
-  async findOne(id: number) {
-    const transaction = await this.transactionRepository.findOneBy({ id });
+  private ownerWhere(id: number, user: userActiveInterface) {
+    return user.role === Role.ADMIN ? { id } : { id, userEmail: user.email };
+  }
+
+  async findOne(id: number, user: userActiveInterface, withDeleted = false) {
+    const transaction = await this.transactionRepository.findOne({
+      where: this.ownerWhere(id, user),
+      ...(withDeleted && { withDeleted }),
+    });
     if (!transaction) {
-      throw new NotFoundException('transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     return transaction;
   }
 
-  async update(id: number, updateTransactionDto: UpdateTransactionDto) {
-    const existing = await this.findOne(id);
+  async update(
+    id: number,
+    updateTransactionDto: UpdateTransactionDto,
+    user: userActiveInterface,
+  ) {
+    const existing = await this.findOne(id, user);
     const patch: Partial<Transaction> = { ...updateTransactionDto };
     if (
       updateTransactionDto.amount !== undefined ||
@@ -101,8 +112,14 @@ export class TransactionsService {
     return await this.transactionRepository.update(id, patch);
   }
 
-  async remove(id: number) {
-    await this.findOne(id);
+  async remove(id: number, user: userActiveInterface) {
+    await this.findOne(id, user);
     return await this.transactionRepository.softDelete({ id });
+  }
+
+  async restore(id: number, user: userActiveInterface) {
+    await this.findOne(id, user, true);
+    await this.transactionRepository.restore({ id });
+    return this.findOne(id, user);
   }
 }

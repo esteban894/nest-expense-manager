@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { TransactionsService } from './transactions.service';
@@ -95,6 +95,23 @@ describe('TransactionsService', () => {
     });
     it('rechaza from > to', async () => {
       await expect(service.findAll(user, { from: '2026-10-13', to: '2026-10-01' })).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('ownership y restore', () => {
+    it('remove de transacción ajena → 404 y no borra', async () => {
+      repo.findOne.mockResolvedValue(null);
+      await expect(service.remove(7, user)).rejects.toThrow(NotFoundException);
+      expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 7, userEmail: user.email } });
+      expect(repo.softDelete).not.toHaveBeenCalled();
+    });
+    it('restore busca incluyendo eliminadas y restaura', async () => {
+      repo.findOne
+        .mockResolvedValueOnce({ id: 7, deletedAt: new Date() })
+        .mockResolvedValueOnce({ id: 7, deletedAt: null });
+      await expect(service.restore(7, user)).resolves.toEqual({ id: 7, deletedAt: null });
+      expect(repo.findOne).toHaveBeenNthCalledWith(1, { where: { id: 7, userEmail: user.email }, withDeleted: true });
+      expect(repo.restore).toHaveBeenCalledWith({ id: 7 });
     });
   });
 });

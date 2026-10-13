@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -47,20 +48,35 @@ export class TransactionsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.transactionsService.findOne(+id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @ActiveUser() user: userActiveInterface,
+  ) {
+    return this.transactionsService.findOne(id, user);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateTransactionDto: UpdateTransactionDto,
+    @ActiveUser() user: userActiveInterface,
   ) {
-    return this.transactionsService.update(+id, updateTransactionDto);
+    return this.transactionsService.update(id, updateTransactionDto, user);
+  }
+
+  @Patch(':id/restore')
+  restore(
+    @Param('id', ParseIntPipe) id: number,
+    @ActiveUser() user: userActiveInterface,
+  ) {
+    return this.transactionsService.restore(id, user);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.transactionsService.remove(+id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @ActiveUser() user: userActiveInterface,
+  ) {
+    return this.transactionsService.remove(id, user);
   }
 }
