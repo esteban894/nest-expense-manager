@@ -1,9 +1,9 @@
-version: "3.8"
 services:
   app:
     build: .
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -27,3 +27,8 @@ services:
       - ./mysql:/var/lib/mysql
     ports:
       - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
